@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Go Task Manager</title>
+    <style>
+        body { font-family: sans-serif; max-width: 600px; margin: 40px auto; padding: 0 20px; background: #1e1e2e; color: #cdd6f4; }
+        h1 { color: #89b4fa; }
+        form { display: flex; gap: 10px; margin-bottom: 20px; }
+        input, button, select { padding: 10px; border-radius: 6px; border: 1px solid #45475a; background: #313244; color: #cdd6f4; }
+        input { flex: 1; }
+        button { background: #89b4fa; color: #11111b; cursor: pointer; font-weight: bold; }
+        button:hover { background: #b4befe; }
+        .task-item { display: flex; justify-content: space-between; align-items: center; background: #313244; padding: 15px; margin-bottom: 10px; border-radius: 8px; }
+        .task-info h3 { margin: 0 0 5px 0; color: #f5e0dc; }
+        .task-info p { margin: 0; font-size: 0.9em; color: #a6adc8; }
+        .status-done { text-decoration: line-line-through; opacity: 0.6; }
+        .btn-del { background: #f38ba8; color: #11111b; }
+        .btn-status { background: #a6e3a1; color: #11111b; margin-right: 5px; }
+    </style>
+</head>
+<body>
+
+    <h1>Task-manager</h1>
+
+    <form id="taskForm">
+        <input type="text" id="title" placeholder="Название задачи..." required>
+        <input type="text" id="desc" placeholder="Описание...">
+        <button type="submit">Добавить</button>
+    </form>
+
+    <div id="taskList"></div>
+
+    <script>
+        const taskList = document.getElementById('taskList');
+        const taskForm = document.getElementById('taskForm');
+
+        // Функция загрузки задач с нашего Go API
+        async function loadTasks() {
+            const res = await fetch('/tasks');
+            const tasks = await res.json();
+            taskList.innerHTML = '';
+            
+            if (!tasks || tasks.length === 0) {
+                taskList.innerHTML = '<p>Задач пока нет. Отдохни!</p>';
+                return;
+            }
+
+            tasks.forEach(task => {
+                const item = document.createElement('div');
+                item.className = `task-item ${task.status === 'done' ? 'status-done' : ''}`;
+                
+                item.innerHTML = `
+                    <div class="task-info">
+                        <h3>${task.title}</h3>
+                        <p>${task.description || 'Нет описания'}</p>
+                        <small>Статус: <b>${task.status}</b></small>
+                    </div>
+                    <div>
+                        ${task.status !== 'done' ? `<button class="btn-status" onclick="toggleStatus(${task.id}, '${task.status}')">✓</button>` : ''}
+                        <button class="btn-del" onclick="deleteTask(${task.id})">✕</button>
+                    </div>
+                `;
+                taskList.appendChild(item);
+            });
+        }
+
+        // Отправка новой задачи (POST)
+        taskForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const title = document.getElementById('title').value;
+            const description = document.getElementById('desc').value;
+
+            await fetch('/tasks', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ title, description })
+            });
+
+            taskForm.reset();
+            loadTasks();
+        });
+
+        // Переключение статуса (PUT)
+        async function toggleStatus(id, currentStatus) {
+            const nextStatus = currentStatus === 'todo' ? 'in_progress' : 'done';
+            await fetch(`/tasks/${id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ status: nextStatus })
+            });
+            loadTasks();
+        }
+
+        // Удаление задачи (DELETE)
+        async function deleteTask(id) {
+            await fetch(`/tasks/${id}`, { method: 'DELETE' });
+            loadTasks();
+        }
+
+        // Загружаем при старте страницы
+        loadTasks();
+    </script>
+</body>
+</html>
