@@ -6,11 +6,13 @@ import (
 
 	"task-manager/internal/handler"
 	"task-manager/internal/repository"
+	"task-manager/internal/service"
 )
 
 func main() {
 	repo := repository.NewTaskRepository()
-	taskHandler := handler.NewTaskHandler(repo)
+	taskService := service.NewTaskService(repo)
+	taskHandler := handler.NewTaskHandler(taskService)
 
 	http.HandleFunc("GET /", func(w http.ResponseWriter, r *http.Request) {
 		http.ServeFile(w, r, "./web/index.html")

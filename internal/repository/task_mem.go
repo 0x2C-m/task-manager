@@ -25,10 +25,11 @@ func (r *TaskRepository) GetAll() []models.Task {
 }
 
 
-func (r *TaskRepository) Add(task models.Task) {
+func (r *TaskRepository) Add(task models.Task) (models.Task) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	r.tasks = append(r.tasks, task)
+	return task
 }
 
 
